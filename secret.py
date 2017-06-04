@@ -113,7 +113,6 @@ if __name__ == '__main__':
     projectGit = manageGit()
     projectGit.addNCommit()
 
-
-    # _secretKey = secretKey(sys.argv[1])
-    # sleep(_secretKey.keep)
-    # _secretKey.deleteKey()
+    _secretKey = secretKey(sys.argv[1])
+    sleep(_secretKey.keep)
+    _secretKey.deleteKey()
