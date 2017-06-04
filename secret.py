@@ -98,10 +98,12 @@ class manageGit(object):
         returnCode, result = execSystemCommand('git add .')
         if returnCode != 0:
             print('Failed to exec: git add')
+            os.system('git reset .')
             sys.exit(1)
         returnCode, result = execSystemCommand('git commit -m "update secret data"')
         if returnCode != 0:
             print('Failed to exec: git commit')
+            os.system('git reset .')
             sys.exit(1)
         returnCode, result = execSystemCommand('git push %s %s' % (self.remoteRepo, self.remoteBranch))
         if returnCode != 0:
