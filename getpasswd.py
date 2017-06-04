@@ -23,6 +23,50 @@ from config import local_config
 import getpass
 from docopt import docopt
 from secret import secretKey
+import subprocess
+from threading import Timer
+import signal
+
+
+def execSystemCommand(cmd, timeout=10):
+    """ run cmd return output and status"""
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
+    killProc = lambda pid: os.killpg(pid, signal.SIGKILL)
+    timer = Timer(timeout, killProc, [popen.pid])
+    timer.start()
+    popen.wait()
+    output = popen.stdout.read()
+    timer.cancel()
+    return popen.returncode, output
+
+
+class manageGit(object):
+    def __init__(self):
+        self.proejctDir = local_config.projectDir
+        self.remoteRepo = local_config.remoteRepo
+        self.remoteBranch = local_config.remoteBranch
+
+    def changeIgnore(self):
+        pass
+
+    def addNCommit(self):
+        os.chdir(self.proejctDir)
+        returnCode, result = execSystemCommand('git add .')
+        if returnCode != 0:
+            print('Failed to exec: git add')
+            os.system('git reset .')
+            sys.exit(1)
+        returnCode, result = execSystemCommand('git commit -m "update secret data"')
+        if returnCode != 0:
+            print('Failed to exec: git commit')
+            os.system('git reset .')
+            sys.exit(1)
+        returnCode, result = execSystemCommand('git push %s %s' % (self.remoteRepo, self.remoteBranch))
+        if returnCode != 0:
+            print('Failed to exec: git push')
+            sys.exit(1)
+
 
 
 class AES_ENCRYPT(object):
@@ -222,6 +266,7 @@ class myPasswd(object):
         self.system = system
         self.sAccount = sAccount
         self.control = manageCipher(self.account)
+        self.projectGit = manageGit()
 
     def actionAdd(self):
         pass
@@ -259,6 +304,7 @@ class myPasswd(object):
                     self.system,
                     self.sAccount,
                     self.sPasswd)
+                self.projectGit.addNCommit()
                 return result
             except Exception as e:
                 print('Failed to run your command')
@@ -273,6 +319,7 @@ class myPasswd(object):
                 result = self.control.deleteRecord(
                     self.system,
                     self.sAccount)
+                self.projectGit.addNCommit()
                 return result
             except Exception as e:
                 print('Failed to run your command')
