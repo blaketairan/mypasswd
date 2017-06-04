@@ -9,6 +9,8 @@ class config(object):
         self.AES_SECRET_KEY = b'1234567812345678aaaaaaaaaaaaaaaa'
         self.iv = 'aaaaaaaaaaaaaaaa'
         self.keyKeepTime = 10
+        self.remoteRepo = 'github'
+        self.remoteBranch = 'master'
 
 
 local_config = config()

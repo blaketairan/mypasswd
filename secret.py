@@ -6,7 +6,21 @@ from config import local_config
 from time import sleep
 from Crypto.Hash import MD5
 from git import Repo
+import subprocess
+from threading import Timer
 
+
+def execSystemCommand(cmd, timeout=10):
+    """ run cmd return output and status"""
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
+    killProc = lambda pid: os.killpg(pid, signal.SIGKILL)
+    timer = Timer(timeout, killProc, [popen.pid])
+    timer.start()
+    popen.wait()
+    output = popen.stdout.read()
+    timer.cancel()
+    return popen.returncode, output
 
 class secretKey(object):
     def __init__(self, account, passwd=''):
@@ -53,30 +67,50 @@ class secretKey(object):
             print('Location: %s' % self.secretKeyLocation)
             print(e)
 
+# class manageGit(object):
+#     def __init__(self, projectDir):
+#         self.projectDir = projectDir
+#         self.repo = Repo(self.projectDir)
+#         print(dir(self.repo))
+#         print(self.repo.heads.master.commit.tree)
+#         print(dir(self.repo.remotes))
+#         getUrlCmd = "self.remote = self.repo.remotes.%s" % self.repo.remotes[0]
+#         exec(getUrlCmd)
+#         print(dir(self.remote))
+
+#     def changeIgnore(self):
+#         pass
+
+#     def addNCommit(self):
+#         self.repo.index.add('.')
+
 class manageGit(object):
-    def __init__(self, projectDir):
-        self.projectDir = projectDir
-        self.repo = Repo(self.projectDir)
-        print(dir(self.repo))
-        print(self.repo.heads.master.commit.tree)
-        print(dir(self.repo.remotes))
-        getUrlCmd = "self.remote = self.repo.remotes.%s" % self.repo.remotes[0]
-        exec(getUrlCmd)
-        print(dir(self.remote))
+    def __init__(self):
+        self.proejctDir = local_config.projectDir
+        self.remoteRepo = local_config.remoteRepo
+        self.remoteBranch = local_config.remoteBranch
 
     def changeIgnore(self):
         pass
 
     def addNCommit(self):
-        self.repo.index.add('./SECRET')
-
-
-
-
+        os.chdir(self.proejctDir)
+        returnCode, result = execSystemCommand('git add .')
+        if returnCode != 0:
+            print('Failed to exec: git add')
+            sys.exit(1)
+        returnCode, result = execSystemCommand('git commit -m "update secret data"')
+        if returnCode != 0:
+            print('Failed to exec: git commit')
+            sys.exit(1)
+        returnCode, result = execSystemCommand('git push %s %s' % (self.remoteRepo, self.remoteBranch))
+        if returnCode != 0:
+            print('Failed to exec: git push')
+            sys.exit(1)
 
 
 if __name__ == '__main__':
-    projectGit = manageGit(local_config.projectDir)
+    projectGit = manageGit()
     projectGit.addNCommit()
 
 
