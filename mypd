@@ -1,0 +1,91 @@
+#!/bin/bash
+
+
+SOURCE="$0"
+while [ -h "$SOURCE" ];
+do
+    DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /*  ]] && SOURCE="$DIR/$SOURCE"
+done
+DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
+echo $DIR
+
+
+
+
+usage='''
+Usage:
+    query:
+        mypd ${account} ${system}
+        mypd ${account} ${system} ${systemAccount}
+    add:
+        mypd ${account} add ${system} ${systemAccount}
+    delete:
+        mypd ${account} delete ${system} ${systemAccount}
+        mypd ${account} delete ${system}
+'''
+
+function doQuery(){
+    :
+}
+
+function doAdd(){
+    :
+}
+
+function doDelete(){
+    :
+}
+
+function doCommand(){
+    cmd="$DIR/getpasswd.py --action $action --account $account --system $system"
+    if [ 'X'$systemAccount != 'X' ];then
+        cmd="$cmd --sAccount $systemAccount"
+    fi
+    $cmd
+    if [ $? -eq 0 ];then
+        echo 'Successful'
+    else
+        echo 'Unsuccessful'
+    fi
+    secretDaemon=`ps aux|grep secret.py|grep -v grep`
+    if [ $? -eq 0 ];then
+        :
+    else
+        $DIR/secret.py $account &
+    fi
+
+}
+
+case $# in
+2)
+    account=$1
+    system=$2
+    action='query'
+    doCommand
+;;
+3)
+    account=$1
+    if [ $2 = 'delete' ];then
+        system=$3
+        action='delete'
+        doCommand
+    else
+        system=$2
+        systemAccount=$3
+        action='query'
+        doCommand
+    fi
+;;
+4)
+    account=$1
+    action=$2
+    system=$3
+    systemAccount=$4
+    doCommand
+;;
+*)
+    echo $usage
+;;
+esac
