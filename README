@@ -2,8 +2,24 @@
 方式：
     AES-265加密，密码自己记，加密后的数据随时同步至github
 用法：
+	请安装python3 使用pip安装dependency.list中依赖
     fork本项目 运行setup.py初始化（添加软链） 然后执行mypd命令 具体见mypd -h
     通过config可以调整一些配置
 
+有意见建议请联系 blaketairan@gmail.com
+What's this?
+	To help you remember your passwd
+How it works?
+	In brief, the cryptographic secret file include you account&passwd info which encrypted with the password you give by AES-256, and could synchronize through github.
+Usage:
+	First, fork this project.
+	Pls use Python3 to run this projcet.(Didn't test with python2!) You may use pip3 tu install the module in the file named dependency.
+	Run setup.sh to create a symbolic link to /usr/local/bin/mypd
+	Then try mypd -h to get the usage with mypd.
 
-
+TODO:
+	Doc - README:some example & add more code-commenting 
+	Funciton - chrome plugin to support autocomplete on web page.
+	Encryption - Learn more to find if there is any safer way.
+	User experience - maybe, easier to use
+	
