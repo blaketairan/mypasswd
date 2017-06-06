@@ -34,19 +34,19 @@ class secretKey(object):
             print(e)
             sys.exit(1)
 
-    def randomSubstr(self):
+    def randomSubstr(self, fullStr):
         subLength = random.randint(16, 32)
         subStartPoint = random.randint(0, 32)
-        length = len(self.key_32)
-        substr = self.key_32[subStartPoint : length \
+        length = len(fullStr)
+        substr = fullStr[subStartPoint : length \
             if subStartPoint + subLength > length \
             else subStartPoint + subLength ] + \
-            self.key_32[0 : 0 if length - subLength > subStartPoint \
+            fullStr[0 : 0 if length - subLength > subStartPoint \
             else subStartPoint + subLength - length]
         return substr
 
-    def checkSubstr(self, substr):
-        judgeStr = self.key_32 * 3
+    def checkSubstr(self, fullStr, substr):
+        judgeStr = fullStr * 3
         if substr in judgeStr:
             return True
         else:

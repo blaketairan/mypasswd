@@ -177,20 +177,20 @@ class manageCipher(object):
         try:
             self.datafile.fileExists(
                 self.secretDict.encrypt(
-                    self.getKey.randomSubstr()).decode('ascii'))
+                    self.getKey.randomSubstr(self.key_32)).decode('ascii'))
             firstline = self.datafile.query()[0]
         except Exception as e:
-            print('Failed to init manageCipher')
+            print('Failed to init manageCipher while check fileExists')
             print(e)
             sys.exit(0)
         try:
             if self.getKey.checkSubstr(
-                    self.secretDict.decrypt(firstline.encode())):
+                    self.secretDict.decrypt(firstline.encode()), self.key_32):
                 print('Wrong password')
                 self.getKey.deleteKey()
                 sys.exit(1)
         except Exception as e:
-            print('Failed to init manageCipher')
+            print('Failed to init manageCipher whild decode secret')
             print(e)
             sys.exit(1)
 
