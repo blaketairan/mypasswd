@@ -14,17 +14,6 @@ echo $DIR
 
 
 
-usage='''
-Usage:
-    query:
-        mypd ${account} ${system}
-        mypd ${account} ${system} ${systemAccount}
-    add:
-        mypd ${account} add ${system} ${systemAccount}
-    delete:
-        mypd ${account} delete ${system} ${systemAccount}
-        mypd ${account} delete ${system}
-'''
 
 function doQuery(){
     :
@@ -86,6 +75,16 @@ case $# in
     doCommand
 ;;
 *)
-    echo $usage
+echo '''
+Usage:
+    query:
+        mypd ${account} ${system}
+        mypd ${account} ${system} ${systemAccount}
+    add:
+        mypd ${account} add ${system} ${systemAccount}
+    delete:
+        mypd ${account} delete ${system} ${systemAccount}
+        mypd ${account} delete ${system}
+'''
 ;;
 esac

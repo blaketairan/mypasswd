@@ -5,6 +5,7 @@ import getpass
 from config import local_config
 from time import sleep
 from Crypto.Hash import MD5
+import random
 
 
 class secretKey(object):
@@ -32,6 +33,24 @@ class secretKey(object):
             print('Failed to acquireKey')
             print(e)
             sys.exit(1)
+
+    def randomSubstr(self):
+        subLength = random.randint(16, 32)
+        subStartPoint = random.randint(0, 32)
+        length = len(self.key_32)
+        substr = self.key_32[subStartPoint : length \
+            if subStartPoint + subLength > length \
+            else subStartPoint + subLength ] + \
+            self.key_32[0 : 0 if length - subLength > subStartPoint \
+            else subStartPoint + subLength - length]
+        return substr
+
+    def checkSubstr(self, substr):
+        judgeStr = self.key_32 * 3
+        if substr in judgeStr:
+            return True
+        else:
+            return False
 
     def timer(self):
         try:
@@ -72,5 +91,5 @@ class secretKey(object):
 
 if __name__ == '__main__':
     _secretKey = secretKey(sys.argv[1])
-    sleep(_secretKey.keep)
+    sleep(_secretKey.keep * 1000)
     _secretKey.deleteKey()

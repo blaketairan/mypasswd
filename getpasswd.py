@@ -26,6 +26,7 @@ from secret import secretKey
 import subprocess
 from threading import Timer
 import signal
+import pyperclip
 
 
 def execSystemCommand(cmd, timeout=10):
@@ -66,7 +67,6 @@ class manageGit(object):
         if returnCode != 0:
             print('Failed to exec: git push')
             sys.exit(1)
-
 
 
 class AES_ENCRYPT(object):
@@ -175,14 +175,17 @@ class manageCipher(object):
         self.datafile = secretIO(self.account)
         self.secretDict = AES_ENCRYPT(self.key_32, self.key_32[:16])
         try:
-            self.datafile.fileExists(self.secretDict.encrypt('Bingo').decode('ascii'))
+            self.datafile.fileExists(
+                self.secretDict.encrypt(
+                    self.getKey.randomSubstr()).decode('ascii'))
             firstline = self.datafile.query()[0]
         except Exception as e:
             print('Failed to init manageCipher')
             print(e)
             sys.exit(0)
         try:
-            if firstline.encode() != self.secretDict.encrypt('Bingo'):
+            if self.getKey.checkSubstr(
+                    self.secretDict.decrypt(firstline.encode())):
                 print('Wrong password')
                 self.getKey.deleteKey()
                 sys.exit(1)
@@ -212,11 +215,7 @@ class manageCipher(object):
                             result.append(temp)
                         else:
                             if sAccount == cleartext[1]:
-                                temp = {}
-                                temp['system'] = cleartext[0]
-                                temp['account'] = cleartext[1]
-                                temp['passwd'] = cleartext[2]
-                                result.append(temp)
+                                result = cleartext[2]
                 except:
                     continue
             return result
@@ -287,7 +286,11 @@ class myPasswd(object):
                 if not self.sAccount:
                     self.sAccount = ''
                 result = self.control.queryRecord(self.system, self.sAccount)
-                return result
+                if isinstance(result, str):
+                    result = pyperclip.copy(result)
+                    return 'Copied'
+                else:
+                    return result
             except Exception as e:
                 print('Failed to run your command')
                 print(e)
