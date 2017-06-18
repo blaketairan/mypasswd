@@ -42,17 +42,19 @@ def execSystemCommand(cmd, timeout=10):
     return popen.returncode, output
 
 
+# control git
 class manageGit(object):
     def __init__(self):
-        self.proejctDir = local_config.projectDir
+        self.projectDir = local_config.projectDir
         self.remoteRepo = local_config.remoteRepo
         self.remoteBranch = local_config.remoteBranch
 
     def changeIgnore(self):
         pass
 
+    # add & commit
     def addNCommit(self):
-        os.chdir(self.proejctDir)
+        os.chdir(self.projectDir)
         returnCode, result = execSystemCommand('git add .')
         if returnCode != 0:
             print('Failed to exec: git add')
@@ -69,6 +71,7 @@ class manageGit(object):
             sys.exit(1)
 
 
+# encrypt and decrypt
 class AES_ENCRYPT(object):
     def __init__(self, key, iv):
         self.key = key
@@ -92,6 +95,7 @@ class AES_ENCRYPT(object):
         return result
 
 
+# the secret data i/o
 class secretIO(object):
     def __init__(self, account):
         self.account = account
@@ -167,13 +171,15 @@ class secretIO(object):
             print(e)
 
 
+# manage cipher
 class manageCipher(object):
-    def __init__(self, account):
+    def __init__(self, account, password=''):
         self.account = account
-        self.getKey = secretKey(self.account)
+        self.getKey = secretKey(self.account, password)
         self.key_32 = self.getKey.acquireKey()[:32]
         self.datafile = secretIO(self.account)
         self.secretDict = AES_ENCRYPT(self.key_32, self.key_32[:16])
+        self.projectGit = manageGit()
         try:
             self.datafile.fileExists(
                 self.secretDict.encrypt(
@@ -229,6 +235,7 @@ class manageCipher(object):
         ciphertext = self.secretDict.encrypt(cleartext)
         try:
             result = self.datafile.add(ciphertext.decode())
+            self.projectGit.addNCommit()
             return result
         except Exception as e:
             print('Failed to add record')
@@ -246,6 +253,7 @@ class manageCipher(object):
                         self.datafile.delete(line)
                 except:
                     continue
+            self.projectGit.addNCommit()
             return True
         except Exception as e:
             print('Failed to add record')
@@ -265,7 +273,6 @@ class myPasswd(object):
         self.system = system
         self.sAccount = sAccount
         self.control = manageCipher(self.account)
-        self.projectGit = manageGit()
 
     def actionAdd(self):
         pass
@@ -307,7 +314,6 @@ class myPasswd(object):
                     self.system,
                     self.sAccount,
                     self.sPasswd)
-                self.projectGit.addNCommit()
                 return result
             except Exception as e:
                 print('Failed to run your command')
@@ -322,7 +328,6 @@ class myPasswd(object):
                 result = self.control.deleteRecord(
                     self.system,
                     self.sAccount)
-                self.projectGit.addNCommit()
                 return result
             except Exception as e:
                 print('Failed to run your command')
