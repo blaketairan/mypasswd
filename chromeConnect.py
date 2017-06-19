@@ -65,7 +65,18 @@ class chromeMypasswd():
         self.passwd = password
         self.system = system
         self.sAccount = sAccount
-        self.control = manageCipher(self.account, self.passwd)
+        try:
+            self.control = manageCipher(self.account, self.passwd)
+            if not self.control.success:
+                self.success = False
+                self.failInfo = self.control.failInfo
+            else:
+                self.success = True
+        except Exception as e:
+            print('Login failed with unknown error')
+            print(e)
+            self.success = False
+            self.failInfo = 'Login failed with unknown error'
 
 
     def run(self):
@@ -89,6 +100,7 @@ if __name__ == '__main__':
         username, passwd, system, suser = connection.read_message()
         printfile(username + passwd + system + suser)
         mypasswd = chromeMypasswd('query',username, passwd, system, suser)
+        if isinstance(mypasswd, str)
         result = mypasswd.run()
         printfile('\n' + result + '\n')
         connection.send_message('{"info": "%s"}' % result)

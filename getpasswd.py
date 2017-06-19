@@ -3,12 +3,14 @@
 
 usage:
   getpasswd.py --action=<action> --account=<account> --system=<system> [--sAccount=<sAccount>]
+  getpasswd.py -r --account=<account>
   getpasswd.py (-h | --help)
   getpasswd.py --version
 
 options:
   -h --help        show this screen
   -v --version     Show version
+  -r --register    Register account.
   --action=<action>         Only in query,add or delete(required)
   --account=<account>       Your mypasswd account(required)
   --system=<system>         Which term do you want to deal(required)
@@ -153,11 +155,20 @@ class secretIO(object):
             print(e)
             sys.exit(1)
 
-    def fileExists(self, text):
+    def fileExists(self, text, register):
         try:
-            if not os.path.exists(self.secret):
-                with open(self.secret, 'w') as secret:
-                    secret.writelines(text + '\n')
+            if register:
+                if not os.path.exists(self.secret):
+                    with open(self.secret, 'w') as secret:
+                        secret.writelines(text + '\n')
+                    return False
+                else:
+                    return 'Account already exists'
+            else:
+                if os.path.exists(self.secret):
+                    return False
+                else:
+                    return 'Account not exists'
         except Exception as e:
             print('Failed confirm fileExists in secretIO. Maybe try to remove %s ' % self.secret)
             print(e)
@@ -173,7 +184,7 @@ class secretIO(object):
 
 # manage cipher
 class manageCipher(object):
-    def __init__(self, account, password=''):
+    def __init__(self, account, password='', register=False):
         self.account = account
         self.getKey = secretKey(self.account, password)
         self.key_32 = self.getKey.acquireKey()[:32]
@@ -181,24 +192,37 @@ class manageCipher(object):
         self.secretDict = AES_ENCRYPT(self.key_32, self.key_32[:16])
         self.projectGit = manageGit()
         try:
-            self.datafile.fileExists(
+            checkAccount = self.datafile.fileExists(
                 self.secretDict.encrypt(
-                    self.getKey.randomSubstr(self.key_32)).decode('ascii'))
-            firstline = self.datafile.query()[0]
+                    self.getKey.randomSubstr(self.key_32)).decode('ascii'),
+                register)
+            if not checkAccount:
+                firstline = self.datafile.query()[0]
+                self.success = True
+            else:
+                self.success = False
+                self.failInfo = checkAccount
+                return None
         except Exception as e:
             print('Failed to init manageCipher while check fileExists')
             print(e)
-            sys.exit(0)
+            self.success = False
+            return None
         try:
             if self.getKey.checkSubstr(
                     self.secretDict.decrypt(firstline.encode()), self.key_32):
                 print('Wrong password')
+                self.success = False
+                self.failInfo = 'Wrong password'
                 self.getKey.deleteKey()
-                sys.exit(1)
+                return None
+            else:
+                self.success = True
         except Exception as e:
-            print('Failed to init manageCipher whild decode secret')
+            print('Failed to init manageCipher while decode secret')
             print(e)
-            sys.exit(1)
+            self.success = False
+            return None
 
     def printInfo(self):
         print(self.account)
@@ -267,12 +291,22 @@ class myPasswd(object):
             action,
             account,
             system='',
-            sAccount=''):
+            sAccount='',
+            register=False):
         self.action = action
         self.account = account
         self.system = system
         self.sAccount = sAccount
-        self.control = manageCipher(self.account)
+        if register:
+            self.control = manageCipher(self.account, register=register)
+        else:
+            self.control = manageCipher(self.account, register=False)
+            if not self.control.success:
+                self.success = False
+                self.failInfo = self.control.failInfo
+                return None
+            else:
+                self.success = True
 
     def actionAdd(self):
         pass
@@ -341,13 +375,18 @@ class myPasswd(object):
 if __name__ == '__main__':
     try:
         arguments = docopt(__doc__, version='myPasswd 0.0.1')
+        print(arguments)
         _mypasswd = myPasswd(
             arguments['--action'],
             arguments['--account'],
             arguments['--system'],
-            arguments['--sAccount'])
-        result = _mypasswd.run()
-        print(result)
+            arguments['--sAccount'],
+            arguments['--register'])
+        if _mypasswd.success:
+            result = _mypasswd.run()
+            print(result)
+        else:
+            print(_mypasswd.failInfo)
     except Exception as e:
         print('Wrong in main')
         print(e)
