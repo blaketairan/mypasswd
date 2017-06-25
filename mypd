@@ -35,19 +35,35 @@ function doCommand(){
     $cmd
     if [ $? -eq 0 ];then
         echo 'Successful'
+        secretDaemon=`ps aux|grep secret.py|grep -v grep`
+        if [ $? -eq 0 ];then
+            :
+        else
+            $DIR/secret.py $account &
+        fi
     else
         echo 'Unsuccessful'
+        rm -f "$DIR/SECRET/.$account"
     fi
-    secretDaemon=`ps aux|grep secret.py|grep -v grep`
+
+}
+
+function register(){
+    cmd="$DIR/getpasswd.py -r --account $account"
+    $cmd
+    secretDaemon=`ps aux|grep secret.py|grep $account|grep -v grep`
     if [ $? -eq 0 ];then
         :
     else
         $DIR/secret.py $account &
     fi
-
 }
 
 case $# in
+1)
+    account=$1
+    register
+;;
 2)
     account=$1
     system=$2
@@ -85,6 +101,8 @@ Usage:
     delete:
         mypd ${account} delete ${system} ${systemAccount}
         mypd ${account} delete ${system}
+    register:
+        mypd ${account}
 '''
 ;;
 esac

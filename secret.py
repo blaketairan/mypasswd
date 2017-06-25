@@ -91,5 +91,5 @@ class secretKey(object):
 
 if __name__ == '__main__':
     _secretKey = secretKey(sys.argv[1])
-    sleep(_secretKey.keep * 1000)
+    sleep(_secretKey.keep * 60)
     _secretKey.deleteKey()

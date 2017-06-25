@@ -29,6 +29,7 @@ import subprocess
 from threading import Timer
 import signal
 import pyperclip
+import traceback
 
 
 def execSystemCommand(cmd, timeout=10):
@@ -204,9 +205,9 @@ class manageCipher(object):
                 self.failInfo = checkAccount
                 return None
         except Exception as e:
-            print('Failed to init manageCipher while check fileExists')
-            print(e)
+            traceback.print_exc()
             self.success = False
+            self.failInfo = 'Failed to init manageCipher while check fileExists'
             return None
         try:
             if self.getKey.checkSubstr(
@@ -218,10 +219,15 @@ class manageCipher(object):
                 return None
             else:
                 self.success = True
-        except Exception as e:
-            print('Failed to init manageCipher while decode secret')
-            print(e)
+        except UnicodeDecodeError:
             self.success = False
+            self.failInfo = 'Wrong password'
+            self.getKey.deleteKey()
+            return None
+        except Exception as e:
+            traceback.print_exc()
+            self.success = False
+            self.failInfo = 'Failed to init manageCipher while decode secret'
             return None
 
     def printInfo(self):
@@ -288,8 +294,8 @@ class manageCipher(object):
 class myPasswd(object):
     def __init__(
             self,
-            action,
             account,
+            action='',
             system='',
             sAccount='',
             register=False):
@@ -298,7 +304,14 @@ class myPasswd(object):
         self.system = system
         self.sAccount = sAccount
         if register:
+            self.action = 'register'
             self.control = manageCipher(self.account, register=register)
+            if not self.control.success:
+                self.success = False
+                self.failInfo = self.control.failInfo
+                return None
+            else:
+                self.success = True
         else:
             self.control = manageCipher(self.account, register=False)
             if not self.control.success:
@@ -367,6 +380,8 @@ class myPasswd(object):
                 print('Failed to run your command')
                 print(e)
                 sys.exit(1)
+        elif self.action == 'register':
+            return 'register success'
         else:
             print('Wrong action!')
             sys.exit(1)
@@ -377,16 +392,18 @@ if __name__ == '__main__':
         arguments = docopt(__doc__, version='myPasswd 0.0.1')
         print(arguments)
         _mypasswd = myPasswd(
-            arguments['--action'],
             arguments['--account'],
+            arguments['--action'],
             arguments['--system'],
             arguments['--sAccount'],
             arguments['--register'])
         if _mypasswd.success:
             result = _mypasswd.run()
             print(result)
+            sys.exit(0)
         else:
             print(_mypasswd.failInfo)
+            sys.exit(1)
     except Exception as e:
         print('Wrong in main')
         print(e)

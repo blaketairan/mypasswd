@@ -56,17 +56,17 @@ class chromeMypasswd():
             self,
             action,
             account,
-            password,
-            system,
-            sAccount,
-            sPasswd=''):
-        self.action = action
+            password)
         self.account = account
         self.passwd = password
-        self.system = system
-        self.sAccount = sAccount
+        self.action = action
+        if self.action == 'register':
+            self.register = True
+        else:
+            self.register = False
         try:
-            self.control = manageCipher(self.account, self.passwd)
+
+            self.control = manageCipher(self.account, self.passwd, self.register)
             if not self.control.success:
                 self.success = False
                 self.failInfo = self.control.failInfo
