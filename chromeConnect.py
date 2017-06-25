@@ -25,14 +25,14 @@ class chromeConnection():
     def __init__(self):
         pass
 
-    def send_message(self, message):
+    def sendMessage(self, message):
         # same in python2 and python3
         temp = struct.pack('i', len(message))
         sys.stdout.buffer.write(temp)
         sys.stdout.buffer.write(message.encode('utf-8'))
         sys.stdout.flush()
 
-    def read_message(self):
+    def readMessage(self):
         # message_number = 0
         text_length_bytes = sys.stdin.buffer.read(4)
         # message_number += 1
@@ -44,29 +44,19 @@ class chromeConnection():
 
         text = sys.stdin.buffer.read(text_length).decode('utf-8')
         jsondata = json.loads(text)
-        username = jsondata['username']
-        passwd = jsondata['passwd']
-        system = jsondata['system']
-        suser = jsondata['suser']
-        return username, passwd, system, suser
+        return jsondata
 
 
 class chromeMypasswd():
     def __init__(
             self,
-            action,
             account,
-            password)
+            password,
+            register=False):
         self.account = account
         self.passwd = password
-        self.action = action
-        if self.action == 'register':
-            self.register = True
-        else:
-            self.register = False
         try:
-
-            self.control = manageCipher(self.account, self.passwd, self.register)
+            self.control = manageCipher(self.account, self.passwd, register)
             if not self.control.success:
                 self.success = False
                 self.failInfo = self.control.failInfo
@@ -78,32 +68,64 @@ class chromeMypasswd():
             self.success = False
             self.failInfo = 'Login failed with unknown error'
 
-
-    def run(self):
-        printfile('Will %s terms for %s')
-        if self.action == 'query':
+    def run(self, action, system='', sAccount='', sPasswd=''):
+        printfile('Will do %s term!\n' % action)
+        if action == 'query':
             try:
-                result = self.control.queryRecord(self.system, self.sAccount)
+                result = self.control.queryRecord(system, sAccount)
+                print(result)
                 if isinstance(result, str):
-                    return result
+                    return 'str', result
+                elif isinstance(result, list):
+                    return 'list', result
+                else:
+                    return None
             except Exception as e:
-                    printfile(e)
+                    printfile(str(e))
                     info = traceback.format_exc()
                     printfile(info)
+
+
+# main function
+def login(connection):
+    try:
+        printfile('"Yes. The py program is starting"\n')
+        receivedMessage = connection.readMessage()
+        printfile(str(receivedMessage) + '\n')
+        account = receivedMessage['account']
+        password = receivedMessage['password']
+        register = receivedMessage['register']
+        if register == 'True':
+            register = True
+        elif register == 'False':
+            register = False
+        else:
+            sys.exit(1)
+        result = chromeMypasswd(account, password, register)
+        return result
+    except Exception as e:
+        info = traceback.format_exc()
+        printfile(info)
+        return None
+
+
+def waitMessage():
+    pass
 
 
 if __name__ == '__main__':
     try:
         connection = chromeConnection()
-        time.sleep(10)
-        connection.send_message('"Yes. There is mypasswd"')
-        username, passwd, system, suser = connection.read_message()
-        printfile(username + passwd + system + suser)
-        mypasswd = chromeMypasswd('query',username, passwd, system, suser)
-        if isinstance(mypasswd, str)
-        result = mypasswd.run()
-        printfile('\n' + result + '\n')
-        connection.send_message('{"info": "%s"}' % result)
+        connection.sendMessage('"Yes. There is mypasswd"')
+        mypasswd = login(connection)
+        if mypasswd:
+            printfile(str(mypasswd.success))
+            if mypasswd.success:
+                connection.sendMessage('"Logged"')
+                time.sleep(10)
+                resultType, result = mypasswd.run()
+            printfile(resultType)
+            connection.sendMessage('{"info": "%s"}' % result)
     except Exception as e:
         info = traceback.format_exc()
         printfile(info)

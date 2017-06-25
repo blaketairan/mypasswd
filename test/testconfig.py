@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import importParentDir
 from config import local_config
 

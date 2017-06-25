@@ -14,6 +14,11 @@ class secretKey(object):
         self.passwd = passwd
         self.secretKeyLocation = local_config.dataLocation + '/.' + self.account
         self.keep = local_config.keyKeepTime
+        if self.passwd == '':
+            self.inputKey = False
+        else:
+            self.inputKey = True
+        self.deleted = False
 
     def acquireKey(self):
         try:
@@ -64,12 +69,18 @@ class secretKey(object):
             sys.exit(1)
 
     def deleteKey(self):
-        try:
-            os.remove(self.secretKeyLocation)
-        except Exception as e:
-            print('Failed to delete secretKey, you may try it self')
-            print('Location: %s' % self.secretKeyLocation)
-            print(e)
+        if not self.deleted:
+            try:
+                if os.path.exists(self.secretKeyLocation):
+                    os.remove(self.secretKeyLocation)
+                    self.deleted = True
+            except Exception as e:
+                print('Failed to delete secretKey, you may try it self')
+                print('Location: %s' % self.secretKeyLocation)
+                print(e)
+    def __del__(self):
+        if self.inputKey:
+            self.deleteKey()
 
 # class manageGit(object):
 #     def __init__(self, projectDir):
