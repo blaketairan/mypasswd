@@ -1,4 +1,5 @@
 import os
+import logging
 os.path.split(os.path.realpath(__file__))[0]
 
 
@@ -11,6 +12,9 @@ class config(object):
         self.keyKeepTime = 10
         self.remoteRepo = 'github'
         self.remoteBranch = 'master'
+        self.LOG_FORMAT = '%(asctime)s %(levelname)s [%(pathname)s-127.0.0.1:8081-%(process)d-%(thread)d] %(module)s.%(funcName)s %(message)s'
+        self.chromeLog = self.projectDir + "/logs/mypasswdChrome.log"
+        self.logLevel = logging.DEBUG
 
 
 local_config = config()

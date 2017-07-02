@@ -7,7 +7,8 @@ from getpasswd import manageCipher
 import traceback
 import time
 from config import local_config
-
+from logging.handlers import TimedRotatingFileHandler
+import logging
 
 if sys.platform == "win32":
     import os, msvcrt
@@ -15,10 +16,15 @@ if sys.platform == "win32":
     msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
 
 
-def printfile(text):
-    with open(local_config.projectDir + "/logs/mypasswdChrome.log","a") as fp:
-        fp.write(text)
-    return 0
+chromeLog = logging.getLogger(__name__)
+logHandler = TimedRotatingFileHandler(
+    filename=local_config.chromeLog,
+    when='D',
+    interval=1,
+    backupCount=7)
+logHandler.setFormatter(logging.Formatter(local_config.LOG_FORMAT))
+chromeLog.addHandler(logHandler)
+chromeLog.setLevel(local_config.logLevel)
 
 
 class chromeConnection():
@@ -55,43 +61,72 @@ class chromeMypasswd():
             register=False):
         self.account = account
         self.passwd = password
+        self.state = 'login'
+        self.result = ''
         try:
             self.control = manageCipher(self.account, self.passwd, register)
             if not self.control.success:
                 self.success = False
-                self.failInfo = self.control.failInfo
+                self.result = self.control.result
+                self.state = 'login-failed'
             else:
                 self.success = True
+                self.state = 'logged'
         except Exception as e:
-            print('Login failed with unknown error')
-            print(e)
+            chromeLog.debug('Login failed with unknown error')
+            chromeLog.debug(e)
+            info = traceback.format_exc()
+            chromeLog.warning(info)
             self.success = False
-            self.failInfo = 'Login failed with unknown error'
+            self.result = 'Login failed with unknown error'
+            self.state = 'login-failed'
 
-    def run(self, action, system='', sAccount='', sPasswd=''):
-        printfile('Will do %s term!\n' % action)
+    def printSelf(self):
+        try:
+            for item in self.__dict__.items():
+                chromeLog.debug(item)
+        except Exception as e:
+            chromeLog.debug(e)
+            info = traceback.format_exc()
+            chromeLog.warning(info)
+
+    def run(self, rMsg):
+        self.success = False
+        sysName = rMsg['sysName']
+        sAccount = rMsg['sAccount']
+        action = rMsg['action']
+        chromeLog.info('Will do %s term!\n' % action)
+        chromeLog.debug(str(rMsg))
         if action == 'query':
             try:
-                result = self.control.queryRecord(system, sAccount)
-                print(result)
+                result = self.control.queryRecord(sysName, sAccount)
+                chromeLog.debug(result)
                 if isinstance(result, str):
-                    return 'str', result
+                    self.success = True
+                    self.state = 'specified-search-success'
+                    self.result = result
                 elif isinstance(result, list):
-                    return 'list', result
+                    self.success = True
+                    self.state = 'list-search-success'
+                    self.result = result
                 else:
-                    return None
+                    self.success = False
+                    self.state = 'search-failed'
+                    self.result = 'Search failed with uncatched error'
             except Exception as e:
-                    printfile(str(e))
+                    chromeLog.warning(str(e))
                     info = traceback.format_exc()
-                    printfile(info)
+                    chromeLog.warning(info)
+                    self.success = False
+                    self.state = 'search-failed'
+                    self.result = info
 
 
 # main function
-def login(connection):
+def login(rMsg):
     try:
-        printfile('"Yes. The py program is starting"\n')
-        receivedMessage = connection.readMessage()
-        printfile(str(receivedMessage) + '\n')
+        chromeLog.debug('Try login\n')
+        chromeLog.debug(str(receivedMessage) + '\n')
         account = receivedMessage['account']
         password = receivedMessage['password']
         register = receivedMessage['register']
@@ -105,27 +140,57 @@ def login(connection):
         return result
     except Exception as e:
         info = traceback.format_exc()
-        printfile(info)
+        chromeLog.debug(info)
         return None
-
-
-def waitMessage():
-    pass
 
 
 if __name__ == '__main__':
     try:
         connection = chromeConnection()
         connection.sendMessage('"Yes. There is mypasswd"')
-        mypasswd = login(connection)
-        if mypasswd:
-            printfile(str(mypasswd.success))
+        while(connection):
+            result = ''
+            state = ''
+            receivedMessage = connection.readMessage()
+            chromeLog.debug(str(receivedMessage))
+            if receivedMessage['action'] == 'login':
+                chromeLog.debug('is login')
+                mypasswd = login(receivedMessage)
+            else:
+                chromeLog.debug('is not login')
+                if 'mypasswd' not in locals():
+                    chromeLog.debug('did not define mypasswd')
+                    state='login-failed'
+                    result = 'not login'
+                    break
+                if receivedMessage['action'] == 'query':
+                    chromeLog.debug('is query')
+                    mypasswd.run(receivedMessage)
+                else:
+                    pass
+
+            chromeLog.debug(str(mypasswd.success))
             if mypasswd.success:
-                connection.sendMessage('"Logged"')
-                time.sleep(10)
-                resultType, result = mypasswd.run()
-            printfile(resultType)
-            connection.sendMessage('{"info": "%s"}' % result)
+                state = mypasswd.state
+                result = mypasswd.result
+            else:
+                result = mypasswd.result
+                state = mypasswd.state
+                chromeLog.debug(result)
+            chromeLog.debug(state)
+            chromeLog.debug(result)
+            connection.sendMessage(
+                '{"info": "%s", "state": "%s"}' % (result, state))
     except Exception as e:
         info = traceback.format_exc()
-        printfile(info)
+        chromeLog.debug(info)
+
+
+
+
+
+
+
+
+
+
